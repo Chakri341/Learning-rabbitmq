@@ -1,0 +1,46 @@
+const amqp = require("amqplib");
+
+async function smsService() {
+
+  try {
+
+    const connection = await amqp.connect("amqp://localhost");
+
+    const channel = await connection.createChannel();
+
+    const exchange = "notifications_exchange";
+
+    await channel.assertExchange(
+      exchange,
+      "fanout"
+    );
+
+    const q = await channel.assertQueue("");
+
+    channel.bindQueue(
+      q.queue,
+      exchange,
+      ""
+    );
+
+    console.log("SMS Service Waiting...");
+
+    channel.consume(q.queue, (message) => {
+
+      const data = JSON.parse(
+        message.content.toString()
+      );
+
+      console.log("SMS SENT:", data);
+
+    }, {
+      noAck: true
+    });
+
+  } catch (error) {
+    console.log(error);
+  }
+
+}
+
+smsService();
